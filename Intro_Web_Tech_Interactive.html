@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PROGRAMMING INTERFACES</title>
+    <style>
+        :root {
+            /* MONOCHROME THEME */
+            --bg-color: #000000;
+            --text-main: #f0f0f0;
+            --accent: #ffffff;
+            --accent-gray: #bbbbbb;
+            --accent-dark: #666666;
+            --card-bg: #111111;
+            --border: 1px solid #333;
+            --font-mono: 'SF Mono', 'Courier New', Courier, monospace;
+            --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            --editor-bg: #1e1e1e;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: var(--font-sans);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- UI CONTROLS --- */
+        nav {
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: var(--border);
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            background: var(--bg-color);
+            z-index: 100;
+        }
+
+        .nav-title span {
+            color: var(--accent-gray);
+        }
+
+        .controls button {
+            background: transparent;
+            border: 1px solid #444;
+            color: var(--text-main);
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            font-family: var(--font-mono);
+            transition: all 0.2s;
+            border-radius: 4px;
+        }
+
+        .controls button:hover {
+            background: var(--text-main);
+            color: var(--bg-color);
+        }
+
+        /* --- MAIN STAGE --- */
+        main {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .slide {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.4s ease, transform 0.4s ease;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem 4rem;
+            pointer-events: none;
+        }
+
+        .slide.active {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: all;
+            z-index: 10;
+        }
+
+        /* --- TYPOGRAPHY --- */
+        h1 {
+            font-size: 4rem;
+            line-height: 1;
+            margin-bottom: 1rem;
+            max-width: 900px;
+            font-weight: 800;
+            letter-spacing: -2px;
+            text-transform: uppercase;
+        }
+
+        h2 {
+            font-size: 2.5rem;
+            color: var(--accent);
+            margin-bottom: 1.5rem;
+            letter-spacing: -1px;
+            text-transform: uppercase;
+        }
+
+        h3 {
+            font-family: var(--font-mono);
+            color: var(--accent-dark);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+        }
+
+        p {
+            font-size: 1.3rem;
+            line-height: 1.5;
+            max-width: 700px;
+            color: var(--accent-gray);
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        ul,
+        ol {
+            max-width: 700px;
+            text-align: left;
+        }
+
+        li {
+            margin-bottom: 1rem;
+            padding-left: 1.5rem;
+            position: relative;
+            line-height: 1.5;
+            font-size: 1.1rem;
+        }
+
+        li::before {
+            content: "→";
+            position: absolute;
+            left: 0;
+            color: var(--accent);
+            font-family: var(--font-mono);
+        }
+
+        .highlight-box {
+            background: rgba(255, 255, 255, 0.1);
+            border-left: 3px solid var(--accent);
+            padding: 1.5rem;
+            margin-top: 2rem;
+            font-style: italic;
+            color: var(--text-main);
+            text-align: left;
+        }
+
+        .code-inline {
+            background: var(--card-bg);
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-family: var(--font-mono);
+            color: var(--accent);
+            border: 1px solid #333;
+            font-size: 0.9em;
+        }
+
+        /* --- W3SCHOOLS STYLE TRY-IT EDITOR --- */
+        .tryit-container {
+            display: flex;
+            width: 100%;
+            max-width: 1200px;
+            height: 50vh;
+            border: var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+            margin-top: 2rem;
+            background: var(--card-bg);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .tryit-pane {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            border-right: var(--border);
+        }
+
+        .tryit-pane:last-child {
+            border-right: none;
+        }
+
+        .pane-header {
+            background: #222;
+            padding: 0.5rem 1rem;
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            color: var(--accent-gray);
+            border-bottom: var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .textarea-code {
+            flex: 1;
+            background: var(--editor-bg);
+            color: #d4d4d4;
+            font-family: var(--font-mono);
+            font-size: 1rem;
+            padding: 1rem;
+            border: none;
+            resize: none;
+            outline: none;
+            line-height: 1.5;
+            white-space: pre;
+            overflow: auto;
+        }
+
+        .iframe-preview {
+            flex: 1;
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: white;
+            /* Previews usually have white bg unless specified */
+        }
+
+        .run-btn {
+            background: var(--accent);
+            color: black;
+            border: none;
+            padding: 0.2rem 0.8rem;
+            cursor: pointer;
+            font-family: var(--font-mono);
+            font-weight: bold;
+            border-radius: 2px;
+        }
+
+        .run-btn:hover {
+            opacity: 0.8;
+        }
+
+        /* PROGRESS BAR */
+        .progress {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 4px;
+            background: var(--accent);
+            transition: width 0.3s;
+        }
+
+        /* Two Column Layout */
+        .split-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            width: 100%;
+            max-width: 1200px;
+            text-align: left;
+        }
+
+        .split-layout p,
+        .split-layout ul {
+            text-align: left;
+            margin-left: 0;
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav>
+        <div class="nav-title">WEB_TECH_<span>MDES_I</span></div>
+        <div class="controls">
+            <button onclick="prevSlide()">← PREV</button>
+            <span id="slide-counter" style="margin: 0 1rem;">1 / 14</span>
+            <button onclick="nextSlide()">NEXT →</button>
+        </div>
+    </nav>
+
+    <main id="presentation">
+
+        <!-- TITLE SLIDE -->
+        <div class="slide active">
+            <h3>Section - 1 </h3>
+            <h1>PROGRAMMING INTERFACES</h1>
+            <p style="text-align: left;" class="subtitle">The Designer's Guide to HTML, CSS, and JavaScript.</p>
+        </div>
+
+        <!-- INTRO -->
+        <div class="slide">
+            <h3>The Objective</h3>
+            <h2>DEMYSTIFYING THE MEDIUM</h2>
+            <p>You cannot design effectively for a medium you do not understand.</p>
+            <div class="split-layout">
+                <div style="padding: 2rem; border: var(--border); background: var(--card-bg);">
+                    <h3 style="color: var(--accent);">What we design</h3>
+                    <p>Static pictures of interfaces (Figma) that represent a single state in time, pretending to be
+                        interactive.</p>
+                </div>
+                <div style="padding: 2rem; border: var(--border); background: var(--card-bg);">
+                    <h3 style="color: var(--accent);">What we build</h3>
+                    <p>Living systems that adapt to screen sizes, user inputs, latency, and accessibility requirements.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODULE 1: HTML -->
+        <div class="slide">
+            <h3>Module 01: The Skeleton</h3>
+            <h2>HTML & SEMANTICS</h2>
+            <p>HTML (HyperText Markup Language) provides the structure. It tells the browser <em>what</em> things are,
+                not how they look.</p>
+            <div class="highlight-box">
+                "If you turn off all the styling (CSS), a well-structured document should still be perfectly readable
+                and logical."
+            </div>
+            <ul style="margin-top: 1rem;">
+                <li><span class="code-inline">&lt;h1&gt;</span> for main headings</li>
+                <li><span class="code-inline">&lt;p&gt;</span> for paragraphs</li>
+                <li><span class="code-inline">&lt;button&gt;</span> for interactive actions</li>
+            </ul>
+        </div>
+
+        <div class="slide">
+            <h3>Studio Time</h3>
+            <h2>"TRY IT YOURSELF": HTML</h2>
+            <p style="color: var(--accent-gray); margin-bottom: 0.5rem;"><strong>Goal:</strong> Fix the bad semantics.
+                Change the visual bolding to structural headings (<span class="code-inline">&lt;h1&gt;</span>, <span
+                    class="code-inline">&lt;h2&gt;</span>) and make a real button.</p>
+
+            <div class="tryit-container">
+                <div class="tryit-pane">
+                    <div class="pane-header">
+                        index.html
+                        <button class="run-btn" onclick="runHTMLDemo()">Run ▷</button>
+                    </div>
+                    <textarea class="textarea-code" id="html-code" onkeyup="runHTMLDemo()">
+<!-- Bad Semantic Structure -->
+<b>My App Dashboard</b>
+<br><br>
+
+<b>Welcome Back</b>
+<br>
+Here is your summary for today.
+<br><br>
+
+<div style="background:blue; color:white; padding:10px; text-align:center;">
+  Click to Save
+</div>
+                    </textarea>
+                </div>
+                <div class="tryit-pane">
+                    <div class="pane-header">Browser Preview</div>
+                    <iframe class="iframe-preview" id="html-preview"></iframe>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODULE 2: CSS -->
+        <div class="slide">
+            <h3>Module 02: The Aesthetic</h3>
+            <h2>CSS & THE BOX MODEL</h2>
+            <p>Every single element on a web page is a rectangle. CSS (Cascading Style Sheets) decorates these
+                rectangles.</p>
+            <ul style="margin-top: 1rem;">
+                <li><strong>Margin:</strong> Space outside the box.</li>
+                <li><strong>Border:</strong> The outline of the box.</li>
+                <li><strong>Padding:</strong> Space inside the box, pushing content inward.</li>
+            </ul>
+        </div>
+
+        <div class="slide">
+            <h3>Studio Time</h3>
+            <h2>"TRY IT YOURSELF": CSS</h2>
+            <p style="color: var(--accent-gray); margin-bottom: 0.5rem;"><strong>Goal:</strong> Style the raw HTML
+                button using CSS to make it look professional.</p>
+
+            <div class="tryit-container">
+                <div class="tryit-pane">
+                    <div class="pane-header">
+                        styles.css
+                        <button class="run-btn" onclick="runCSSDemo()">Run ▷</button>
+                    </div>
+                    <textarea class="textarea-code" id="css-code" onkeyup="runCSSDemo()">
+button {
+  background-color: black;
+  color: white;
+  
+  /* Add padding (e.g., 12px 24px) */
+  
+  
+  /* Add a border radius (e.g., 8px) */
+  
+  
+  /* Add a border */
+  border: none;
+  font-family: sans-serif;
+  cursor: pointer;
+}
+
+button:hover {
+  /* What happens on hover? */
+  background-color: #333;
+}
+                    </textarea>
+                </div>
+                <div class="tryit-pane">
+                    <div class="pane-header">Browser Preview</div>
+                    <iframe class="iframe-preview" id="css-preview"></iframe>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODULE 3: JAVASCRIPT -->
+        <div class="slide">
+            <h3>Module 03: The Behavior</h3>
+            <h2>JAVASCRIPT & INTERACTIVITY</h2>
+            <p>JavaScript listens for events (clicks, scrolls) and changes the HTML or CSS in response.</p>
+            <div class="highlight-box" style="font-family: var(--font-mono);">
+                1. Find the element: document.getElementById('btn')<br>
+                2. Listen to it: .addEventListener('click')<br>
+                3. Do something: Change color, fetch data, show modal.
+            </div>
+        </div>
+
+        <div class="slide">
+            <h3>Studio Time</h3>
+            <h2>"TRY IT YOURSELF": JAVASCRIPT</h2>
+            <p style="color: var(--accent-gray); margin-bottom: 0.5rem;"><strong>Goal:</strong> Complete the logic to
+                make the "Toggle Dark Mode" button work.</p>
+
+            <div class="tryit-container">
+                <div class="tryit-pane" style="flex: 1.5;">
+                    <div class="pane-header">
+                        script.js
+                        <button class="run-btn" onclick="runJSDemo()">Run ▷</button>
+                    </div>
+                    <textarea class="textarea-code" id="js-code" onkeyup="runJSDemo()">
+// Get the button element
+const btn = document.getElementById("themeBtn");
+
+btn.addEventListener("click", function() {
+  
+  // Toggle the class 'dark-theme' on the body
+  document.body.classList.toggle("dark-theme");
+  
+  // EXTRA: Change button text inside this block
+  if(document.body.classList.contains("dark-theme")) {
+     btn.innerText = "Switch to Light";
+  } else {
+     btn.innerText = "Switch to Dark";
+  }
+});
+                    </textarea>
+                </div>
+                <div class="tryit-pane">
+                    <div class="pane-header">Browser Preview</div>
+                    <iframe class="iframe-preview" id="js-preview"></iframe>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODULE 4: LAYOUT -->
+        <div class="slide">
+            <h3>Module 04: The Grid</h3>
+            <h2>LAYOUTS & GRIDS (MOBILE VS DESKTOP)</h2>
+            <p>We don't draw boxes randomly. We align them to mathematical grids.</p>
+            <div class="split-layout">
+                <div style="padding: 2rem; border: var(--border); background: var(--card-bg);">
+                    <ul style="font-size: 1rem;">
+                        <li><strong style="color:var(--accent);">Columns:</strong> The main areas where content lives.
+                            Usually 12 on Desktop, 4 on Mobile.</li>
+                        <li><strong style="color:var(--accent);">Gutters:</strong> The empty space <em>between</em> the
+                            columns. (Typically 16px - 24px).</li>
+                    </ul>
+                </div>
+                <div style="padding: 2rem; border: var(--border); background: var(--card-bg);">
+                    <ul style="font-size: 1rem;">
+                        <li><strong style="color:var(--accent);">Margins:</strong> The empty space on the far left and
+                            right edges of the screen.</li>
+                        <li><strong style="color:var(--accent);">Responsive:</strong> As the screen shrinks, the number
+                            of columns decreases, stacked vertically.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <h3>Studio Time</h3>
+            <h2>"TRY IT YOURSELF": CSS GRID</h2>
+            <p style="color: var(--accent-gray); margin-bottom: 0.5rem;"><strong>Goal:</strong> Adjust the <span
+                    class="code-inline">gap</span> (gutter) and <span class="code-inline">grid-template-columns</span>
+                to see how content reflows.</p>
+
+            <div class="tryit-container">
+                <div class="tryit-pane">
+                    <div class="pane-header">
+                        layout.css
+                        <button class="run-btn" onclick="runGridDemo()">Run ▷</button>
+                    </div>
+                    <textarea class="textarea-code" id="grid-code" onkeyup="runGridDemo()">
+.container {
+  display: grid;
+  
+  /* Try changing the number of '1fr' below */
+  /* e.g., '1fr 1fr' makes 2 columns */
+  grid-template-columns: 1fr 1fr 1fr;
+  
+  /* The Gutter (Space between columns) */
+  gap: 16px; 
+  
+  /* The Screen Margin (Space on edges) */
+  padding: 32px; 
+}
+
+/* Card Styling */
+.card {
+  background-color: #333;
+  padding: 20px;
+  border-radius: 8px;
+  color: white;
+}
+                    </textarea>
+                </div>
+                <div class="tryit-pane">
+                    <div class="pane-header">Browser Preview</div>
+                    <iframe class="iframe-preview" id="grid-preview"></iframe>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODULE 5: DEVTOOLS -->
+        <div class="slide">
+            <h3>Module 04: The Tool</h3>
+            <h2>CHROME DEVTOOLS</h2>
+            <p>The ultimate tool for a designer is the browser's inspector. Right-click any website and hit "Inspect
+                Element".</p>
+            <ul style="margin-top: 1rem;">
+                <li><strong>Elements Panel:</strong> See the real HTML structure.</li>
+                <li><strong>Styles Panel:</strong> Live-edit CSS without writing code (perfect for fixing spacing issues
+                    in QA).</li>
+                <li><strong>Network Panel:</strong> See why an image is taking so long to load.</li>
+            </ul>
+        </div>
+
+        <!-- MODULE 6: UNITS -->
+        <div class="slide">
+            <h3>Module 06: The Vocabulary</h3>
+            <h2>UNITS: PX vs REM vs DP</h2>
+            <p>Designers think in points or pixels. Browsers think in scalable units.</p>
+            <div class="split-layout">
+                <div style="padding: 2rem; border: var(--border); background: var(--card-bg);">
+                    <ul style="font-size: 1rem;">
+                        <li><strong>px (Pixels):</strong> Absolute. 16px is always 16px. Bad for accessibility if users
+                            change default font sizes.</li>
+                        <li><strong>rem (Root EM):</strong> Relative. <span class="code-inline">1rem</span> = the
+                            browser's default font size (usually 16px). If a user needs larger text, rems scale
+                            automatically.</li>
+                    </ul>
+                </div>
+                <div style="padding: 2rem; border: var(--border); background: var(--card-bg);">
+                    <ul style="font-size: 1rem;">
+                        <li><strong>dp / pt:</strong> Density-independent pixels (Android/iOS). Used in Figma to
+                            represent physical size across different screen densities.</li>
+                        <li><strong>Rule:</strong> Use <strong>rem</strong> for typography and spacing on the web to
+                            respect user preferences.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <h3>Studio Time</h3>
+            <h2>"TRY IT YOURSELF": RESPONSIVE UNITS</h2>
+            <p style="color: var(--accent-gray); margin-bottom: 0.5rem;"><strong>Goal:</strong> Simulate a user who
+                needs larger text. Change the <span class="code-inline">html font-size</span> to 24px and see how px,
+                rem, and dp react.</p>
+
+            <div class="tryit-container">
+                <div class="tryit-pane">
+                    <div class="pane-header">
+                        styles.css
+                        <button class="run-btn" onclick="runUnitsDemo()">Run ▷</button>
+                    </div>
+                    <textarea class="textarea-code" id="units-code" onkeyup="runUnitsDemo()">
+/* The User's Browser Settings */
+html {
+  font-size: 16px; /* CHANGE THIS TO 24px */
+}
+
+/* Hardcoded Pixels */
+.bad-box {
+  width: 200px;
+  padding: 16px;
+  font-size: 16px;
+}
+
+/* Scalable Rems */
+.good-box {
+  width: 12.5rem; /* 200px / 16 */
+  padding: 1rem;
+  font-size: 1rem;
+}
+
+/* Mobile DP (Simulated via scale) */
+/* dp assumes 160ppi density baseline */
+.dp-box {
+  width: 200px; /* Base size */
+  padding: 16px;
+  font-size: 16px;
+  /* On higher density screens, we scale up */
+  transform: scale(1.5); /* Try changing to 2.0 */
+  margin-top: 20px;
+}
+                    </textarea>
+                </div>
+                <div class="tryit-pane">
+                    <div class="pane-header">Browser Preview</div>
+                    <iframe class="iframe-preview" id="units-preview"></iframe>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODULE 7: HANDOFF -->
+        <div class="slide">
+            <h3>Conclusion</h3>
+            <h2>THE DESIGNER-DEVELOPER HANDOFF</h2>
+            <div class="split-layout">
+                <div style="padding: 2rem; border: var(--border); background: var(--card-bg);">
+                    <h3 style="color: var(--accent);">What Developers Hate</h3>
+                    <ul style="font-size: 1rem;">
+                        <li>"Make it pop more" (Subjective)</li>
+                        <li>Unused CSS files in handoff</li>
+                        <li>Missing hover/active states in Figma</li>
+                        <li>Inconsistent spacing (12px here, 13px there)</li>
+                    </ul>
+                </div>
+                <div style="padding: 2rem; border: var(--border); background: var(--card-bg);">
+                    <h3 style="color: var(--accent);">What Developers Love</h3>
+                    <ul style="font-size: 1rem;">
+                        <li>Design Tokens (<span class="code-inline">--color-primary</span>)</li>
+                        <li>Consistent grids and 4px/8px baselines</li>
+                        <li>Interactive prototypes that demonstrate flow</li>
+                        <li>Designers who understand the Box Model</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <div class="progress" id="progress-bar"></div>
+
+    <script>
+        // --- NAVIGATION LOGIC ---
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const counter = document.getElementById('slide-counter');
+        const progressBar = document.getElementById('progress-bar');
+
+        function updateSlide() {
+            slides.forEach((slide, index) => {
+                slide.classList.remove('active');
+                if (index === currentSlide) {
+                    slide.classList.add('active');
+                }
+            });
+            counter.innerText = `${currentSlide + 1} / ${slides.length}`;
+            const progress = ((currentSlide + 1) / slides.length) * 100;
+            progressBar.style.width = `${progress}%`;
+
+            // Re-run demos when their slides become active to ensure frames are sized correctly
+            if (currentSlide === 2) runHTMLDemo();
+            if (currentSlide === 4) runCSSDemo();
+            if (currentSlide === 6) runJSDemo();
+            if (currentSlide === 9) runGridDemo();
+            if (currentSlide === 12) runUnitsDemo();
+        }
+
+        function nextSlide() {
+            if (currentSlide < slides.length - 1) {
+                currentSlide++;
+                updateSlide();
+            }
+        }
+
+        function prevSlide() {
+            if (currentSlide > 0) {
+                currentSlide--;
+                updateSlide();
+            }
+        }
+
+        document.addEventListener('keydown', (e) => {
+            // Prevent changing slides when typing in a textarea
+            if (e.target.tagName.toLowerCase() === 'textarea') return;
+
+            if (e.key === 'ArrowRight') nextSlide();
+            if (e.key === 'ArrowLeft') prevSlide();
+        });
+
+        updateSlide();
+
+        // --- TRY-IT EDITOR LOGIC (W3SCHOOLS STYLE) ---
+
+        // HTML Demo
+        function runHTMLDemo() {
+            const htmlCode = document.getElementById('html-code').value;
+            const iframe = document.getElementById('html-preview');
+            // Wrap in basic boilerplate with generic sandboxed font
+            const fullHTML = `
+                <html style="font-family: sans-serif; padding: 20px;">
+                    <body>${htmlCode}</body>
+                </html>
+            `;
+            iframe.srcdoc = fullHTML;
+        }
+
+        // CSS Demo
+        function runCSSDemo() {
+            const cssCode = document.getElementById('css-code').value;
+            const iframe = document.getElementById('css-preview');
+            const predefinedHTML = `
+                <html style="font-family: sans-serif; padding: 20px; text-align: center; display: flex; flex-direction:column; justify-content:center; align-items:center; height:100%;">
+                    <body>
+                        <button>Click To Continue</button>
+                    </body>
+                </html>
+            `;
+            const fullHTML = `
+                <style>${cssCode}</style>
+                ${predefinedHTML}
+            `;
+            iframe.srcdoc = fullHTML;
+        }
+
+        // JS Demo
+        function runJSDemo() {
+            const jsCode = document.getElementById('js-code').value;
+            const iframe = document.getElementById('js-preview');
+
+            // Need a base UI to interact with
+            const predefinedHTML = `
+                <html>
+                <head>
+                    <style>
+                        body { 
+                            font-family: sans-serif; 
+                            padding: 20px; 
+                            transition: background-color 0.3s, color 0.3s;
+                            text-align: center;
+                            height: 100%;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                        }
+                        .dark-theme {
+                            background-color: #222;
+                            color: #eee;
+                        }
+                        button {
+                            padding: 12px 24px;
+                            font-size: 16px;
+                            cursor: pointer;
+                            border: 2px solid #555;
+                            border-radius: 6px;
+                            background: white;
+                        }
+                        .dark-theme button {
+                            background: black;
+                            color: white;
+                            border-color: white;
+                        }
+                    </style>
+                </head>
+                <body>
+                    <button id="themeBtn">Switch to Dark</button>
+                </body>
+                </html>
+            `;
+
+            // Combine UI and script
+            const fullHTML = `
+                ${predefinedHTML}
+                <script>
+                    ${jsCode}
+                <\/script>
+            `;
+            iframe.srcdoc = fullHTML;
+        }
+
+        // Units Demo
+        function runUnitsDemo() {
+            const cssCode = document.getElementById('units-code').value;
+            const iframe = document.getElementById('units-preview');
+            const predefinedHTML = `
+                <html style="font-family: sans-serif; padding: 20px; box-sizing: border-box;">
+                    <head>
+                        <style>
+                            body { margin: 0; padding: 0; display: flex; flex-direction: column; gap: 40px; align-items: center; justify-content: center; height: 100vh;}
+                            .bad-box { background: #ffaaaa; border: 2px solid #ff0000; box-sizing: border-box; text-align: center; }
+                            .good-box { background: #aaffaa; border: 2px solid #00aa00; box-sizing: border-box; text-align: center; }
+                            .dp-box { background: #aaaaff; border: 2px solid #0000ff; box-sizing: border-box; text-align: center; transform-origin: top center; }
+                            ${cssCode}
+                        </style>
+                    </head>
+                    <body>
+                        <div class="bad-box">Pixels (Fixed)</div>
+                        <div class="good-box">Rems (Scalable)</div>
+                        <div class="dp-box">DP (Density Scaled)</div>
+                    </body>
+                </html>
+            `;
+            iframe.srcdoc = predefinedHTML;
+        }
+
+        // Grid Demo
+        function runGridDemo() {
+            const cssCode = document.getElementById('grid-code').value;
+            const iframe = document.getElementById('grid-preview');
+            const predefinedHTML = `
+                <html style="font-family: sans-serif; box-sizing: border-box; width: 100%; height: 100%; margin: 0; background: #e0e0e0;">
+                    <head>
+                        <style>
+                            * { box-sizing: border-box; }
+                            body { margin: 0; min-height: 100%; display: flex; align-items: flex-start; justify-content: center;}
+                            ${cssCode}
+                        </style>
+                    </head>
+                    <body>
+                        <div class="container" style="width: 100%; max-width: 800px; background: white; margin: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                            <div class="card">Item 1</div>
+                            <div class="card">Item 2</div>
+                            <div class="card">Item 3</div>
+                            <div class="card">Item 4</div>
+                            <div class="card">Item 5</div>
+                            <div class="card">Item 6</div>
+                        </div>
+                    </body>
+                </html>
+            `;
+            iframe.srcdoc = predefinedHTML;
+        }
+
+    </script>
+</body>
+
+</html>
