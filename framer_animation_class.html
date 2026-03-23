@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mastering Motion: Bezier & Springs</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* MONOCHROME THEME based on the other slide deck */
+            --bg-color: #000000;
+            --text-main: #f0f0f0;
+            --accent: #ffffff;
+            --accent-gray: #bbbbbb;
+            --accent-dark: #666666;
+            --card-bg: #111111;
+            --border: 1px solid #333;
+            --font-mono: 'JetBrains Mono', 'Courier New', Courier, monospace;
+            --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            
+            /* Custom accents for motion */
+            --theme-blue: #3b82f6;
+            --theme-pink: #ec4899;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: var(--font-sans);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- UI CONTROLS --- */
+        nav {
+            padding: 0 2rem;
+            height: 60px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: var(--border);
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            background: var(--bg-color);
+            z-index: 100;
+            width: 100%;
+            flex-shrink: 0;
+        }
+
+        .nav-title span {
+            color: var(--accent-gray);
+        }
+
+        .nav-controls {
+            display: flex;
+            align-items: center;
+        }
+
+        .nav-controls button {
+            background: transparent;
+            border: 1px solid #444;
+            color: var(--text-main);
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            font-family: var(--font-mono);
+            transition: all 0.2s;
+            border-radius: 4px;
+        }
+
+        .nav-controls button:hover {
+            background: var(--text-main);
+            color: var(--bg-color);
+        }
+
+        /* --- MAIN STAGE --- */
+        main {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .slide {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.4s ease, transform 0.4s ease;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem 4rem;
+            pointer-events: none;
+        }
+
+        .slide.active {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: all;
+            z-index: 10;
+        }
+
+        /* --- TYPOGRAPHY --- */
+        h1 {
+            font-size: 4rem;
+            line-height: 1;
+            margin-bottom: 1rem;
+            max-width: 900px;
+            font-weight: 800;
+            letter-spacing: -2px;
+            text-transform: uppercase;
+            text-align: center;
+        }
+
+        h2 {
+            font-size: 2.5rem;
+            color: var(--accent);
+            margin-bottom: 1.5rem;
+            letter-spacing: -1px;
+            text-transform: uppercase;
+            text-align: center;
+        }
+
+        h3 {
+            font-family: var(--font-mono);
+            color: var(--accent-dark);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+        }
+
+        p {
+            font-size: 1.3rem;
+            line-height: 1.5;
+            max-width: 700px;
+            color: var(--accent-gray);
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        
+        .theory-list {
+            text-align: left;
+            margin-top: 1rem;
+            max-width: 700px;
+            width: 100%;
+        }
+
+        .theory-list li {
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+            color: var(--accent-gray);
+            line-height: 1.5;
+            padding-left: 1.5rem;
+            position: relative;
+        }
+        
+        .theory-list li::before {
+            content: "→";
+            position: absolute;
+            left: 0;
+            color: var(--theme-blue);
+            font-family: var(--font-mono);
+        }
+        
+        .theory-list.pink-accent li::before {
+            color: var(--theme-pink);
+        }
+
+        /* --- UTILS --- */
+        .highlight-box {
+            background: rgba(255, 255, 255, 0.1);
+            border-left: 3px solid var(--theme-blue);
+            padding: 1.5rem;
+            margin-top: 2rem;
+            font-style: italic;
+            color: var(--text-main);
+            max-width: 700px;
+            text-align: left;
+            width: 100%;
+        }
+        
+        .highlight-box.pink-accent {
+            border-left-color: var(--theme-pink);
+        }
+
+        /* --- INTERACTIVE LABS --- */
+        .assignment-card {
+            background: var(--card-bg);
+            padding: 2.5rem;
+            border: var(--border);
+            max-width: 1000px;
+            width: 100%;
+            border-radius: 8px;
+        }
+
+        .card-header {
+            margin-bottom: 2rem;
+            text-align: left;
+        }
+
+        .card-header p {
+            font-size: 1.1rem;
+            margin-bottom: 0;
+            text-align: left;
+            color: var(--accent-gray);
+        }
+
+        .playground-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 3rem;
+        }
+
+        .controls { display: flex; flex-direction: column; gap: 1.2rem; }
+        .control-group { display: flex; flex-direction: column; gap: 0.5rem; }
+        
+        .control-header {
+            display: flex;
+            justify-content: space-between;
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            color: var(--accent-gray);
+        }
+        .control-header span:last-child { color: white; background: rgba(255,255,255,0.1); padding: 0.1rem 0.4rem; border-radius: 2px;}
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 4px;
+            background: #333;
+            border-radius: 2px;
+            outline: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--text-main);
+            cursor: pointer;
+        }
+
+        .play-btn {
+            background: var(--accent);
+            color: #000;
+            border: none;
+            padding: 0.8rem 1.5rem;
+            font-family: var(--font-mono);
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 0.5rem;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+        .play-btn:hover { opacity: 0.8; }
+
+        .code-block {
+            background: #000;
+            padding: 1rem;
+            border-radius: 4px;
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            color: var(--theme-blue);
+            border: 1px solid #333;
+            margin-top: 0.5rem;
+        }
+
+        .visualizer {
+            background: #000;
+            border-radius: 8px;
+            border: 1px solid #333;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Bezier Curve SVG */
+        .curve-svg-container {
+            width: 180px;
+            height: 180px;
+            border: 1px solid #333;
+            position: relative;
+            margin-bottom: 2rem;
+            background: rgba(255,255,255,0.02);
+        }
+        svg.bezier-graph { width: 100%; height: 100%; overflow: visible; }
+        .grid-line { stroke: #222; stroke-width: 1; }
+        .center-line { stroke: #444; stroke-width: 1; stroke-dasharray: 2; }
+        .curve-path { stroke: var(--theme-blue); stroke-width: 4; fill: none; }
+        .handle-line { stroke: #666; stroke-width: 1.5; stroke-dasharray: 4; }
+        .handle-point { fill: #fff; cursor: pointer; }
+
+        /* Animated Objects */
+        .track {
+            width: 100%;
+            height: 48px;
+            background: #111;
+            border-radius: 24px;
+            border: 1px solid #333;
+            position: relative;
+            padding: 4px;
+        }
+        .anim-box {
+            width: 38px;
+            height: 38px;
+            background: var(--theme-blue);
+            border-radius: 50%;
+            position: absolute;
+            left: 4px;
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.4);
+        }
+        .spring-box { 
+            background: var(--theme-pink); 
+            box-shadow: 0 0 10px rgba(236, 72, 153, 0.4);
+        }
+
+        .presets { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.5rem; }
+        .preset-btn {
+            background: transparent;
+            border: 1px solid #444;
+            color: var(--accent-gray);
+            padding: 0.3rem 0.6rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-family: var(--font-mono);
+            cursor: pointer;
+        }
+        .preset-btn:hover { border-color: #fff; color: #fff; }
+
+        /* --- PROGRESS BAR --- */
+        .progress {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 4px;
+            background: var(--accent);
+            transition: width 0.3s;
+        }
+
+        .comparison-table { width: 100%; border-collapse: collapse; max-width: 900px; text-align: left; margin-top: 2rem;}
+        .comparison-table th, .comparison-table td { padding: 1.5rem; border-bottom: 1px solid #333; }
+        .comparison-table th { color: #fff; font-family: var(--font-mono); font-size: 0.9rem; text-transform: uppercase; background: var(--card-bg);}
+        .comparison-table td { color: var(--accent-gray); font-size: 1.1rem; }
+        .tag { font-family: var(--font-mono); font-size: 0.75rem; background: #222; padding: 0.3rem 0.6rem; border-radius: 4px; color: #fff;}
+    </style>
+</head>
+<body>
+
+    <nav>
+        <div class="nav-title">MASTERING_<span>MOTION</span></div>
+        <div class="nav-controls">
+            <button onclick="prevSlide()">← PREV</button>
+            <span id="slide-counter" style="margin: 0 1rem;">1 / 6</span>
+            <button onclick="nextSlide()">NEXT →</button>
+        </div>
+    </nav>
+
+    <main id="presentation">
+
+        <!-- SLIDE 1: INTRO -->
+        <div class="slide title-slide active">
+            <h3>Module 01</h3>
+            <h1>MASTERING MOTION</h1>
+            <p>Bezier Curves & framer-motion Physics</p>
+        </div>
+
+        <!-- SLIDE 2: BEZIER THEORY -->
+        <div class="slide">
+            <h3>Morning Lecture</h3>
+            <h2>THE ANATOMY OF A TWEEN</h2>
+            <p>A "Tween" (short for in-between) transitions a value from State A to State B over a strict, predetermined duration.</p>
+            
+            <ul class="theory-list">
+                <li><strong>Fixed Duration:</strong> A tween strictly adheres to a set clock (e.g., exactly 0.5 seconds).</li>
+                <li><strong>The Graphic Curve:</strong> The easing or pacing of this timeline is defined using a Cubic Bezier curve.</li>
+                <li><strong>Math vs Reality:</strong> The X-Axis represents <strong>Time</strong>. The Y-Axis represents <strong>Animation Progress</strong>.</li>
+            </ul>
+
+            <div class="highlight-box">
+                "Values that dip below 0 or shoot above 1 on the Y-Axis create bouncy, overflow effects."
+            </div>
+        </div>
+
+        <!-- SLIDE 3: BEZIER LAB -->
+        <div class="slide">
+            <h3>Morning Studio</h3>
+            <h2>LAB: BEZIER PLAYGROUND</h2>
+            
+            <div class="assignment-card">
+                <div class="card-header">
+                    <p><strong>Goal:</strong> Adjust the control points of the Cubic Bezier curve to understand how graph shape affects animation timing.</p>
+                </div>
+                
+                <div class="playground-grid">
+                    <div class="controls">
+                        <div class="presets">
+                            <button class="preset-btn" onclick="setBezier(0.25, 0.1, 0.25, 1)">Ease</button>
+                            <button class="preset-btn" onclick="setBezier(0, 0, 1, 1)">Linear</button>
+                            <button class="preset-btn" onclick="setBezier(0.42, 0, 1, 1)">Ease In</button>
+                            <button class="preset-btn" onclick="setBezier(0, 0, 0.58, 1)">Ease Out</button>
+                            <button class="preset-btn" onclick="setBezier(0.68, -0.6, 0.32, 1.6)">Bouncy</button>
+                        </div>
+    
+                        <div class="control-group">
+                            <div class="control-header"><span>Control 1 X (Time)</span> <span id="val-x1">0.25</span></div>
+                            <input type="range" id="b-x1" min="0" max="1" step="0.01" value="0.25">
+                        </div>
+                        <div class="control-group">
+                            <div class="control-header"><span>Control 1 Y (Progress)</span> <span id="val-y1">0.1</span></div>
+                            <input type="range" id="b-y1" min="-1" max="2" step="0.01" value="0.1">
+                        </div>
+                        <div class="control-group">
+                            <div class="control-header"><span>Control 2 X (Time)</span> <span id="val-x2">0.25</span></div>
+                            <input type="range" id="b-x2" min="0" max="1" step="0.01" value="0.25">
+                        </div>
+                        <div class="control-group">
+                            <div class="control-header"><span>Control 2 Y (Progress)</span> <span id="val-y2">1.0</span></div>
+                            <input type="range" id="b-y2" min="-1" max="2" step="0.01" value="1.0">
+                        </div>
+                        
+                        <div class="code-block" id="bezier-code">
+                            transition: transform 1s cubic-bezier(0.25, 0.1, 0.25, 1);
+                        </div>
+    
+                        <button class="play-btn" id="play-bezier">PLAY TWEEN</button>
+                    </div>
+    
+                    <div class="visualizer">
+                        <div class="curve-svg-container">
+                            <svg class="bezier-graph" viewBox="-20 -20 140 140">
+                                <line x1="0" y1="100" x2="100" y2="100" class="grid-line" />
+                                <line x1="0" y1="0" x2="0" y2="100" class="grid-line" />
+                                <line x1="100" y1="0" x2="100" y2="100" class="grid-line" />
+                                <line x1="0" y1="0" x2="100" y2="0" class="grid-line" />
+                                <line x1="0" y1="100" x2="100" y2="0" class="center-line" />
+                                
+                                <line id="line1" x1="0" y1="100" x2="25" y2="90" class="handle-line"/>
+                                <line id="line2" x1="100" y1="0" x2="25" y2="0" class="handle-line"/>
+                                
+                                <path id="bezier-path" d="M 0 100 C 25 90, 25 0, 100 0" class="curve-path"/>
+                                
+                                <circle id="pt1" cx="25" cy="90" r="4" class="handle-point" fill="#3b82f6"/>
+                                <circle id="pt2" cx="25" cy="0" r="4" class="handle-point" fill="#ec4899"/>
+                                <circle cx="0" cy="100" r="4" fill="#fff"/>
+                                <circle cx="100" cy="0" r="4" fill="#fff"/>
+                            </svg>
+                        </div>
+    
+                        <div class="track">
+                            <div class="anim-box" id="bezier-box"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 4: SPRING THEORY -->
+        <div class="slide">
+            <h3>Afternoon Lecture</h3>
+            <h2>FRAMER'S SECRET: SPRING PHYSICS</h2>
+            <p>Unlike Tweens which restrict movements to a specific clock duration, Springs are based on physical forces.</p>
+            
+            <ul class="theory-list pink-accent">
+                <li><strong>No Fixed Duration:</strong> A spring animation runs until friction naturally slows it to a stop.</li>
+                <li><strong>Interruptibility:</strong> Because it calculates physical momentum, springs can be reversed realistically mid-flight.</li>
+                <li><strong>Parameters:</strong> Controlled by <em>Stiffness</em> (Tension), <em>Damping</em> (Friction), and <em>Mass</em>.</li>
+            </ul>
+
+            <div class="highlight-box pink-accent">
+                "Framer defaults to Spring animations because they echo the physical world and feel infinitely smoother for interactive UI."
+            </div>
+        </div>
+
+        <!-- SLIDE 5: SPRING LAB -->
+        <div class="slide">
+            <h3>Afternoon Studio</h3>
+            <h2>LAB: PHYSICS ENGINE</h2>
+            
+            <div class="assignment-card">
+                <div class="card-header">
+                    <p><strong>Goal:</strong> Adjust the physical mass and tension of the UI element to see how spring math naturally guides movement without a fixed duration.</p>
+                </div>
+
+                <div class="playground-grid">
+                    <div class="controls">
+                        <div class="presets">
+                            <button class="preset-btn" onclick="setSpring(100, 10, 1)">Smooth</button>
+                            <button class="preset-btn" onclick="setSpring(200, 8, 1)">Bouncy</button>
+                            <button class="preset-btn" onclick="setSpring(50, 20, 1)">Sluggish</button>
+                            <button class="preset-btn" onclick="setSpring(300, 30, 2)">Heavy Duty</button>
+                        </div>
+    
+                        <div class="control-group">
+                            <div class="control-header"><span>Stiffness (Tension)</span> <span id="val-stiffness">100</span></div>
+                            <input type="range" id="s-stiffness" min="10" max="400" step="1" value="100">
+                        </div>
+                        <div class="control-group">
+                            <div class="control-header"><span>Damping (Friction)</span> <span id="val-damping">10</span></div>
+                            <input type="range" id="s-damping" min="1" max="50" step="1" value="10">
+                        </div>
+                        <div class="control-group">
+                            <div class="control-header"><span>Mass (Weight)</span> <span id="val-mass">1</span></div>
+                            <input type="range" id="s-mass" min="0.1" max="5" step="0.1" value="1">
+                        </div>
+    
+                        <div class="code-block" style="color: var(--theme-pink);" id="spring-code">
+                            &lt;motion.div<br/>
+                            &nbsp;&nbsp;transition={{<br/>
+                            &nbsp;&nbsp;&nbsp;&nbsp;type: "spring",<br/>
+                            &nbsp;&nbsp;&nbsp;&nbsp;stiffness: 100,<br/>
+                            &nbsp;&nbsp;&nbsp;&nbsp;damping: 10,<br/>
+                            &nbsp;&nbsp;&nbsp;&nbsp;mass: 1<br/>
+                            &nbsp;&nbsp;}}<br/>
+                            /&gt;
+                        </div>
+    
+                        <button class="play-btn" id="play-spring">TRIGGER PHYSICS</button>
+                    </div>
+    
+                    <div class="visualizer" style="justify-content: center;">
+                        <div class="track">
+                            <div class="anim-box spring-box" id="spring-box"></div>
+                        </div>
+                        <p style="margin-top: 2rem; font-size: 0.9rem; color: #888; text-align: center; max-width: 80%;">
+                            Notice the absence of a 'duration' variable. It will physically bounce until velocity reaches zero.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 6: CONCLUSION -->
+        <div class="slide">
+            <h3>Summary</h3>
+            <h2>WHEN TO USE WHICH?</h2>
+            
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th width="20%">Feature</th>
+                        <th width="40%">Standard Tween (Cubic Bezier)</th>
+                        <th width="40%">Spring Physics</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Mental Model</strong></td>
+                        <td>Like plotting points on a locked timeline graph.</td>
+                        <td>Like stretching a rubber band with weights attached.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Duration</strong></td>
+                        <td><span class="tag">Fixed Time (e.g. 0.3s)</span></td>
+                        <td><span class="tag">Dynamic (Derived from momentum)</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Interruption</strong></td>
+                        <td>Hard snaps or forces ugly timeline resets.</td>
+                        <td>Momentum is fluidly conserved mid-flight.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Best Use Cases</strong></td>
+                        <td>Color crossfades, opacity changes, rigid technical loaders.</td>
+                        <td>Layout shifts, dragging interactions, modals, spatial movement.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+    </main>
+
+    <div class="progress" id="progress-bar"></div>
+
+    <script>
+        // --- NAVIGATION LOGIC ---
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const counter = document.getElementById('slide-counter');
+        const progressBar = document.getElementById('progress-bar');
+
+        function updateSlide() {
+            slides.forEach((slide, index) => {
+                slide.classList.remove('active');
+                if (index === currentSlide) {
+                    slide.classList.add('active');
+                }
+            });
+            counter.innerText = `${currentSlide + 1} / ${slides.length}`;
+            const progress = ((currentSlide + 1) / slides.length) * 100;
+            progressBar.style.width = `${progress}%`;
+        }
+
+        function nextSlide() {
+            if (currentSlide < slides.length - 1) {
+                currentSlide++;
+                updateSlide();
+            }
+        }
+
+        function prevSlide() {
+            if (currentSlide > 0) {
+                currentSlide--;
+                updateSlide();
+            }
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight') nextSlide();
+            if (e.key === 'ArrowLeft') prevSlide();
+        });
+
+        updateSlide();
+
+
+        // --- BEZIER LOGIC ---
+        const inputs = ['x1', 'y1', 'x2', 'y2'];
+        const bezierBox = document.getElementById('bezier-box');
+        const codeBlock = document.getElementById('bezier-code');
+        const path = document.getElementById('bezier-path');
+        const l1 = document.getElementById('line1');
+        const l2 = document.getElementById('line2');
+        const pt1 = document.getElementById('pt1');
+        const pt2 = document.getElementById('pt2');
+        const playBtn = document.getElementById('play-bezier');
+
+        function setBezier(x1, y1, x2, y2) {
+            document.getElementById('b-x1').value = x1;
+            document.getElementById('b-y1').value = y1;
+            document.getElementById('b-x2').value = x2;
+            document.getElementById('b-y2').value = y2;
+            updateBezier();
+        }
+
+        function updateBezier() {
+            let vals = {};
+            inputs.forEach(id => {
+                const val = parseFloat(document.getElementById(`b-${id}`).value);
+                document.getElementById(`val-${id}`).innerText = val.toFixed(2);
+                vals[id] = val;
+            });
+
+            const px1 = vals.x1 * 100;
+            const py1 = 100 - (vals.y1 * 100);
+            const px2 = vals.x2 * 100;
+            const py2 = 100 - (vals.y2 * 100);
+
+            path.setAttribute('d', `M 0 100 C ${px1} ${py1}, ${px2} ${py2}, 100 0`);
+            l1.setAttribute('x2', px1); l1.setAttribute('y2', py1);
+            l2.setAttribute('x2', px2); l2.setAttribute('y2', py2);
+            pt1.setAttribute('cx', px1); pt1.setAttribute('cy', py1);
+            pt2.setAttribute('cx', px2); pt2.setAttribute('cy', py2);
+
+            const cbString = `${vals.x1}, ${vals.y1}, ${vals.x2}, ${vals.y2}`;
+            codeBlock.innerText = `transition: transform 1s cubic-bezier(${cbString});`;
+
+            if (isBezierAnimated) bezierBox.style.transition = `transform 1s cubic-bezier(${cbString})`;
+            return cbString;
+        }
+
+        inputs.forEach(id => document.getElementById(`b-${id}`).addEventListener('input', updateBezier));
+
+        let isBezierAnimated = false;
+        let bezierTimeout;
+        
+        playBtn.addEventListener('click', () => {
+            clearTimeout(bezierTimeout);
+            const cbString = updateBezier();
+            const trackWidth = document.querySelector('.track').clientWidth - 46; 
+            
+            if(isBezierAnimated) {
+                bezierBox.style.transition = 'none';
+                bezierBox.style.transform = `translateX(0px)`;
+                isBezierAnimated = false;
+                playBtn.innerText = `PLAY TWEEN`;
+            } else {
+                isBezierAnimated = true;
+                bezierBox.style.transition = 'none';
+                bezierBox.style.transform = `translateX(0px)`;
+                void bezierBox.offsetWidth;
+                bezierBox.style.transition = `transform 1s cubic-bezier(${cbString})`;
+                bezierBox.style.transform = `translateX(${trackWidth}px)`;
+                
+                playBtn.innerText = `RESET CONTAINER`;
+                bezierTimeout = setTimeout(() => {
+                    playBtn.innerText = `RESET CONTAINER`;
+                }, 1000);
+            }
+        });
+        updateBezier();
+
+
+        // --- SPRING LOGIC ---
+        const sInputs = ['stiffness', 'damping', 'mass'];
+        const springBox = document.getElementById('spring-box');
+        const sCodeBlock = document.getElementById('spring-code');
+        const playSpringBtn = document.getElementById('play-spring');
+        
+        function setSpring(stiffness, damping, mass) {
+            document.getElementById('s-stiffness').value = stiffness;
+            document.getElementById('s-damping').value = damping;
+            document.getElementById('s-mass').value = mass;
+            updateSpringValues();
+            if(!isSpringMoving) startSpringTarget();
+        }
+
+        function updateSpringValues() {
+            let vals = {};
+            sInputs.forEach(id => {
+                const val = parseFloat(document.getElementById(`s-${id}`).value);
+                document.getElementById(`val-${id}`).innerText = val;
+                vals[id] = val;
+            });
+            sCodeBlock.innerHTML = `&lt;motion.div<br/>&nbsp;&nbsp;transition={{<br/>&nbsp;&nbsp;&nbsp;&nbsp;type: "spring",<br/>&nbsp;&nbsp;&nbsp;&nbsp;stiffness: ${vals.stiffness},<br/>&nbsp;&nbsp;&nbsp;&nbsp;damping: ${vals.damping},<br/>&nbsp;&nbsp;&nbsp;&nbsp;mass: ${vals.mass}<br/>&nbsp;&nbsp;}}<br/>/&gt;`;
+            return vals;
+        }
+
+        sInputs.forEach(id => document.getElementById(`s-${id}`).addEventListener('input', updateSpringValues));
+
+        let sPos = 0, sVel = 0, sTarget = 0, animationFrame;
+        let isSpringAtEnd = false, isSpringMoving = false, lastTime = 0;
+
+        function simulateSpring(time) {
+            if(!lastTime) lastTime = time;
+            const config = updateSpringValues();
+            let dt = (time - lastTime) / 1000;
+            if (dt > 0.064) dt = 0.064; 
+            lastTime = time;
+
+            const f = -config.stiffness * (sPos - sTarget) - config.damping * sVel;
+            const a = f / config.mass;
+            sVel += a * dt;
+            sPos += sVel * dt;
+
+            springBox.style.transform = `translateX(${sPos}px)`;
+
+            if (Math.abs(sVel) < 0.1 && Math.abs(sTarget - sPos) < 0.5) {
+                sPos = sTarget;
+                springBox.style.transform = `translateX(${sPos}px)`;
+                cancelAnimationFrame(animationFrame);
+                isSpringMoving = false;
+                playSpringBtn.innerText = isSpringAtEnd ? `RESET POSITION` : `TRIGGER PHYSICS`;
+            } else {
+                animationFrame = requestAnimationFrame(simulateSpring);
+            }
+        }
+        
+        function startSpringTarget() {
+            const trackWidth = document.querySelector('.track').clientWidth - 46;
+            isSpringAtEnd = !isSpringAtEnd;
+            sTarget = isSpringAtEnd ? trackWidth : 0;
+            
+            playSpringBtn.innerText = 'SETTLING...';
+            
+            if(!isSpringMoving) {
+                isSpringMoving = true;
+                lastTime = performance.now();
+                animationFrame = requestAnimationFrame(simulateSpring);
+            }
+        }
+
+        playSpringBtn.addEventListener('click', startSpringTarget);
+        updateSpringValues();
+    </script>
+</body>
+</html>
