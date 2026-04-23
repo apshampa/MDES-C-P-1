@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Building Quizzes From Scratch | M.Des</title>
+    <style>
+        :root {
+            --bg-color: #000000;
+            --text-main: #f0f0f0;
+            --accent: #ffffff;
+            --accent-gray: #bbbbbb;
+            --accent-dark: #666666;
+            --card-bg: #111111;
+            --border: 1px solid #333;
+            --font-mono: 'SF Mono', 'Courier New', Courier, monospace;
+            --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            --quiz-accent: #3b82f6; 
+            --quiz-correct: #10b981;
+            --quiz-wrong: #ef4444;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: var(--font-sans);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        nav {
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: var(--border);
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            background: var(--bg-color);
+            z-index: 100;
+        }
+
+        .nav-title span {
+            color: var(--accent-gray);
+        }
+
+        .controls button {
+            background: transparent;
+            border: 1px solid #444;
+            color: var(--text-main);
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            font-family: var(--font-mono);
+            transition: all 0.2s;
+            border-radius: 4px;
+        }
+
+        .controls button:hover {
+            background: var(--text-main);
+            color: var(--bg-color);
+        }
+
+        main {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .slide {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.4s ease, transform 0.4s ease;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem 4rem;
+            pointer-events: none;
+        }
+
+        .slide.active {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: all;
+            z-index: 10;
+        }
+
+        h1 {
+            font-size: 4rem;
+            line-height: 1;
+            margin-bottom: 1rem;
+            max-width: 900px;
+            font-weight: 800;
+            letter-spacing: -2px;
+            text-transform: uppercase;
+            text-align: center;
+        }
+
+        h2 {
+            font-size: 2.5rem;
+            color: var(--accent);
+            margin-bottom: 1.5rem;
+            letter-spacing: -1px;
+            text-transform: uppercase;
+        }
+
+        h3 {
+            font-family: var(--font-mono);
+            color: var(--accent-dark);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+        }
+
+        p {
+            font-size: 1.3rem;
+            line-height: 1.5;
+            max-width: 800px;
+            color: var(--accent-gray);
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        ul, ol {
+            max-width: 800px;
+        }
+
+        li {
+            margin-bottom: 1rem;
+            padding-left: 1.5rem;
+            position: relative;
+            line-height: 1.5;
+            font-size: 1.1rem;
+        }
+
+        li::before {
+            content: "→";
+            position: absolute;
+            left: 0;
+            color: var(--accent);
+            font-family: var(--font-mono);
+        }
+
+        .highlight-box {
+            background: rgba(255, 255, 255, 0.1);
+            border-left: 3px solid var(--accent);
+            padding: 1.5rem;
+            margin-top: 1rem;
+            font-style: italic;
+            color: var(--text-main);
+            max-width: 800px;
+        }
+
+        .code-block {
+            background: #1a1a1a;
+            padding: 1.5rem;
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            border: 1px solid #333;
+            color: #ccc;
+            width: 100%;
+            max-width: 800px;
+            margin-bottom: 1rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            text-align: left;
+            line-height: 1.6;
+        }
+
+        .code-kw { color: #f28b82; }
+        .code-str { color: #fbbc04; }
+        .code-var { color: #8ab4f8; }
+
+        .deck-progress {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 4px;
+            background: var(--accent);
+            transition: width 0.3s;
+            z-index: 100;
+        }
+
+        .quiz-container {
+            width: 100%;
+            max-width: 600px;
+            background: var(--card-bg);
+            border: var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+            font-family: var(--font-sans);
+        }
+
+        .quiz-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .quiz-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: white;
+            margin: 0;
+            text-align: left;
+            text-transform: none;
+            letter-spacing: normal;
+        }
+
+        .quiz-score-live {
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            color: var(--accent-gray);
+        }
+
+        .quiz-progress-track {
+            width: 100%;
+            height: 4px;
+            background: #333;
+        }
+
+        .quiz-progress-fill {
+            height: 100%;
+            background: var(--quiz-accent);
+            width: 0%;
+            transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .quiz-body {
+            padding: 2rem;
+            min-height: 350px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .quiz-question {
+            font-size: 1.4rem;
+            font-weight: 500;
+            margin-bottom: 2rem;
+            line-height: 1.4;
+            color: white;
+            text-align: left;
+        }
+
+        .quiz-options {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .quiz-option {
+            display: flex;
+            align-items: center;
+            padding: 1rem;
+            border: 2px solid #333;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 1.1rem;
+            color: var(--accent-gray);
+            user-select: none;
+        }
+
+        .quiz-option:hover {
+            background: rgba(255,255,255,0.05);
+            border-color: #555;
+        }
+
+        .quiz-option.selected {
+            border-color: var(--quiz-accent);
+            background: rgba(59, 130, 246, 0.1);
+            color: white;
+        }
+
+        .quiz-option input[type="radio"] {
+            position: absolute;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .quiz-footer {
+            padding: 1.5rem;
+            border-top: 1px solid #333;
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .quiz-btn {
+            background: white;
+            color: black;
+            border: none;
+            padding: 0.8rem 1.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: var(--font-sans);
+            transition: opacity 0.2s;
+        }
+
+        .quiz-btn:hover {
+            opacity: 0.9;
+        }
+        
+        .quiz-btn:disabled {
+            background: #333;
+            color: #777;
+            cursor: not-allowed;
+        }
+
+        .result-screen {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            min-height: 350px;
+        }
+
+        .circular-progress {
+            position: relative;
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: conic-gradient(var(--quiz-accent) 0deg, #333 0deg);
+            margin-bottom: 2rem;
+        }
+
+        .circular-progress::before {
+            content: "";
+            position: absolute;
+            width: 130px;
+            height: 130px;
+            background: var(--card-bg);
+            border-radius: 50%;
+        }
+
+        .circular-progress-value {
+            position: relative;
+            font-size: 2.5rem;
+            font-weight: 700;
+            font-family: var(--font-mono);
+            color: white;
+        }
+
+        .bar-graph-container {
+            width: 100%;
+            height: 24px;
+            background: #333;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+            overflow: hidden;
+            display: none;
+        }
+
+        .bar-graph-fill {
+            height: 100%;
+            background: var(--quiz-accent);
+            width: 0%;
+            transition: width 1s ease-out;
+        }
+        
+        .result-details {
+            text-align: center;
+            color: var(--accent-gray);
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+        }
+
+        .result-gif {
+            width: 200px;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 12px;
+            margin-bottom: 1rem;
+            display: none;
+        }
+
+    </style>
+</head>
+
+<body>
+
+    <nav>
+        <div class="nav-title">ZERO TO HERO_<span>M.DES</span></div>
+        <div class="controls">
+            <button onclick="prevSlide()">← PREV</button>
+            <span id="slide-counter" style="margin: 0 1rem;">1 / 13</span>
+            <button onclick="nextSlide()">NEXT →</button>
+        </div>
+    </nav>
+
+    <main id="presentation">
+
+        <div class="slide title-slide active">
+            <h3>Module 01</h3>
+            <h1>QUIZ BUILDING BOOTCAMP</h1>
+            <p class="subtitle" style="text-align:center;">From absolute scratch. No assumptions.</p>
+        </div>
+
+        <div class="slide">
+            <h3>Step 01.</h3>
+            <h2>THE BARE HTML BONES</h2>
+            <p>Every quiz needs a box to live in. We write pure HTML containers to structure the content before touching design.</p>
+            <div class="code-block">
+&lt;div class="quiz-box"&gt;
+    &lt;h1 id="question-text"&gt;Question goes here&lt;/h1&gt;
+    
+    &lt;div id="options-area"&gt;
+        &lt;button&gt;Option A&lt;/button&gt;
+        &lt;button&gt;Option B&lt;/button&gt;
+    &lt;/div&gt;
+
+    &lt;button id="next-button"&gt;Next&lt;/button&gt;
+&lt;/div&gt;
+            </div>
+        </div>
+
+        <div class="slide">
+            <h3>Step 02.</h3>
+            <h2>CSS DRESSING</h2>
+            <p>We use CSS flexbox to force everything to stack cleanly and look like an app rather than a Word document.</p>
+            <div class="code-block">
+<span class="code-var">.quiz-box</span> {
+    <span class="code-kw">display</span>: flex;
+    <span class="code-kw">flex-direction</span>: column;
+    <span class="code-kw">width</span>: 500px;
+    <span class="code-kw">padding</span>: 2rem;
+    <span class="code-kw">background</span>: #111111;
+    <span class="code-kw">border-radius</span>: 12px;
+}
+<span class="code-var">button</span> { <span class="code-kw">padding</span>: 1rem; }
+            </div>
+        </div>
+
+        <div class="slide">
+            <h3>Step 03.</h3>
+            <h2>JAVASCRIPT STATE</h2>
+            <p>We cannot write 50 different HTML pages for 50 questions. We write ONE page, and cycle the data using Javascript objects.</p>
+            <div class="code-block">
+<span class="code-kw">const</span> <span class="code-var">quizData</span> = [
+    {
+        <span class="code-kw">q</span>: <span class="code-str">"What is the best font?"</span>,
+        <span class="code-kw">responses</span>: [<span class="code-str">"Inter"</span>, <span class="code-str">"Arial"</span>, <span class="code-str">"Comic Sans"</span>],
+        <span class="code-kw">answerIndex</span>: 0
+    },
+    {
+        <span class="code-kw">q</span>: <span class="code-str">"What color is HEX #000?"</span>,
+        <span class="code-kw">responses</span>: [<span class="code-str">"White"</span>, <span class="code-str">"Black"</span>],
+        <span class="code-kw">answerIndex</span>: 1
+    }
+];
+            </div>
+        </div>
+
+        <div class="slide">
+            <h3>Step 04.</h3>
+            <h2>THE DOM BRIDGE</h2>
+            <p>We use Javascript to grab the empty HTML elements and shove our array data inside them.</p>
+            <div class="code-block">
+<span class="code-kw">let</span> <span class="code-var">currentIndex</span> = 0;
+
+<span class="code-kw">let</span> <span class="code-var">myTextElement</span> = document.getElementById(<span class="code-str">"question-text"</span>);
+
+myTextElement.innerText = quizData[currentIndex].q;
+            </div>
+        </div>
+
+        <div class="slide">
+            <h3>Step 05.</h3>
+            <h2>MAKING IT CLICK</h2>
+            <p>Without functions, the quiz never moves. We attach an action to the "Next" button.</p>
+            <div class="code-block">
+<span class="code-kw">function</span> <span class="code-var">goToNext</span>() {
+    currentIndex = currentIndex + 1;
+    
+    <span class="code-kw">if</span> (currentIndex &lt; quizData.length) {
+        myTextElement.innerText = quizData[currentIndex].q;
+    } <span class="code-kw">else</span> {
+        alert(<span class="code-str">"Quiz Finished!"</span>);
+    }
+}
+            </div>
+        </div>
+
+        <div class="slide">
+            <h3>Module 02.</h3>
+            <h2>SCORING STRATEGIES</h2>
+            <p>Every time they click next, we check their answer math before proceeding.</p>
+            
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:2rem; width:100%; max-width:900px;">
+                <div style="border:1px solid #333; padding:1.5rem; border-radius: 8px;">
+                    <strong style="color:var(--quiz-correct);">CLASSIC (+1 / 0)</strong>
+                    <div style="font-family:var(--font-mono); font-size:0.8rem; margin-top:1rem; color:#bbb;">if (correct) score += 1;</div>
+                </div>
+                <div style="border:1px solid #333; padding:1.5rem; border-radius: 8px;">
+                    <strong style="color:var(--quiz-wrong);">COMPETITIVE (+4 / -1)</strong>
+                    <div style="font-family:var(--font-mono); font-size:0.8rem; margin-top:1rem; color:#bbb;">if (correct) score += 4;<br>else if (attempted) score -= 1;</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <h3>Module 03.</h3>
+            <h2>ADVANCED QUIZ FORMS</h2>
+            <p>Some quizzes require completely different layouts entirely.</p>
+            <ul style="text-align: left;">
+                <li><strong>True / False</strong>: Use `flex-direction: row;` to make binary buttons stack horizontally.</li>
+                <li><strong>Select All That Apply</strong>: Use `<input type="checkbox">` instead of `radio` to allow multiple clicks without the browser resetting them.</li>
+            </ul>
+        </div>
+
+        <div class="slide">
+            <h3>Module 03.</h3>
+            <h2>PERSONALITY PROFILING</h2>
+            <p>Tally names instead of numbers for outcome quizzes (e.g., Which Hogwarts House are you?).</p>
+            <div class="code-block" style="font-size:0.8rem;">
+<span class="code-kw">let</span> <span class="code-var">personaScores</span> = { <span class="code-str">"Gryffindor"</span>: 0, <span class="code-str">"Slytherin"</span>: 0 };
+<span class="code-kw">let</span> <span class="code-var">userSelection</span> = <span class="code-str">"Gryffindor"</span>; 
+
+personaScores[userSelection] += 1;
+
+<span class="code-kw">let</span> <span class="code-var">winner</span> = Object.keys(personaScores).reduce((a, b) => 
+    personaScores[a] > personaScores[b] ? a : b 
+);
+            </div>
+        </div>
+
+        <div class="slide">
+            <h3>Module 04.</h3>
+            <h2>VISUALIZING RESULTS</h2>
+            <p>Show logic, don't just tell. We can use modern CSS math to dynamically draw circular graphics.</p>
+            <div class="code-block">
+<span class="code-kw">let</span> <span class="code-var">percentage</span> = (score / maxScore) * 100;
+<span class="code-kw">let</span> <span class="code-var">circle</span> = document.querySelector('.circular-progress');
+
+circle.style.background = 
+  <span class="code-str">`conic-gradient(#3b82f6 <span class="code-var">${percentage * 3.6}</span>deg, #333 0deg)`</span>;
+            </div>
+        </div>
+
+        <div class="slide">
+            <h3>Module 04.</h3>
+            <h2>BAR GRAPH REPRESENTATIONS</h2>
+            <p>We can achieve horizontal graphic representations easily by changing a DIV's width percentage.</p>
+            <div class="code-block" style="font-size: 0.8rem;">
+<span class="code-var">.bar-track</span> { width: 100%; background: #333; }
+<span class="code-var">.bar-fill</span> { background: blue; transition: width 1s; }
+
+// In JS:
+document.getElementById('bar-fill').style.width = percentage + "%";
+            </div>
+        </div>
+
+        <div class="slide">
+            <h3>Module 04.</h3>
+            <h2>CONDITIONAL GIFS</h2>
+            <p>We read the final percentage, and load different GIPHY URLs into an image tag.</p>
+            <div class="code-block" style="font-size:0.8rem;">
+<span class="code-kw">let</span> <span class="code-var">imageTag</span> = document.getElementById('result-image');
+
+<span class="code-kw">if</span> (percentage >= 80) {
+    imageTag.src = <span class="code-str">"https://media.giphy.com/media/xT0xezQGU5xCDJuCPe/giphy.gif"</span>; // Happy
+} <span class="code-kw">else</span> {
+    imageTag.src = <span class="code-str">"https://media.giphy.com/media/T1WqKkLY753dZghV8E/giphy.gif"</span>; // Sad
+}
+            </div>
+        </div>
+
+        <div class="slide">
+            <h3>05. Code Playground</h3>
+            <h2>THE FINAL BUILD</h2>
+            <p style="font-size: 1.1rem; max-width:900px;">Try it yourself. I built circular graphs, horizontal bars, and conditional GIFs directly into this instance.</p>
+            
+            <div class="quiz-container" id="demo-quiz">
+                
+                <div class="quiz-header">
+                    <h2 class="quiz-title">HTML Basics</h2>
+                    <div class="quiz-score-live" id="live-score-display">Score: 0</div>
+                </div>
+                
+                <div class="quiz-progress-track">
+                    <div class="quiz-progress-fill" id="quiz-progress"></div>
+                </div>
+
+                <div class="quiz-body" id="quiz-question-area">
+                    <div class="quiz-question" id="quiz-question-text">
+                        Loading...
+                    </div>
+                    <div class="quiz-options" id="quiz-options-area"></div>
+                </div>
+
+                <div class="quiz-body result-screen" id="quiz-result-area">
+                    
+                    <img src="" alt="Result Reaction" class="result-gif" id="result-gif-image">
+
+                    <div class="circular-progress" id="result-circle">
+                        <span class="circular-progress-value" id="result-percentage">0%</span>
+                    </div>
+
+                    <div class="bar-graph-container" id="bar-graph">
+                        <div class="bar-graph-fill" id="bar-graph-fill"></div>
+                    </div>
+
+                    <h3 style="color: white; font-family: var(--font-sans); margin-bottom: 0.5rem; text-transform:none;">Results</h3>
+                    
+                    <div class="result-details" id="result-details-text"></div>
+
+                    <button class="quiz-btn" id="restart-btn" style="width: 100%; border:1px solid #333;" onclick="QUIZ.init()">Try Again</button>
+                </div>
+
+                <div class="quiz-footer" id="quiz-footer-area">
+                    <button class="quiz-btn" id="next-btn" onclick="QUIZ.submitAnswer()" disabled>Next</button>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <div class="deck-progress" id="deck-progress-bar"></div>
+
+    <script>
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const counter = document.getElementById('slide-counter');
+        const progressBar = document.getElementById('deck-progress-bar');
+
+        function updateSlide() {
+            slides.forEach((slide, index) => {
+                slide.classList.remove('active');
+                if (index === currentSlide) {
+                    slide.classList.add('active');
+                }
+            });
+            counter.innerText = `${currentSlide + 1} / ${slides.length}`;
+            const progress = ((currentSlide + 1) / slides.length) * 100;
+            progressBar.style.width = `${progress}%`;
+        }
+
+        function nextSlide() {
+            if (currentSlide < slides.length - 1) {
+                currentSlide++;
+                updateSlide();
+            }
+        }
+
+        function prevSlide() {
+            if (currentSlide > 0) {
+                currentSlide--;
+                updateSlide();
+            }
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight') nextSlide();
+            if (e.key === 'ArrowLeft') prevSlide();
+        });
+
+        updateSlide();
+
+
+        const QUIZ = {
+            currentQuestionIndex: 0,
+            score: 0,
+            selectedOptionIndex: null,
+            marksForCorrect: 10,
+            marksForIncorrect: -2,
+
+            questions: [
+                {
+                    text: "What HTML tag forces a line break?",
+                    options: ["<break>", "<b>", "<br>", "<lb>"],
+                    correctIndex: 2
+                },
+                {
+                    text: "In Javascript, arrays always begin counting at what number?",
+                    options: ["1", "0", "-1", "A"],
+                    correctIndex: 1
+                },
+                {
+                    text: "To change the background color in CSS, what property is used?",
+                    options: ["color", "bgcolor", "background-color", "fill"],
+                    correctIndex: 2
+                }
+            ],
+
+            elements: {
+                questionText: document.getElementById('quiz-question-text'),
+                optionsArea: document.getElementById('quiz-options-area'),
+                progressFill: document.getElementById('quiz-progress'),
+                liveScore: document.getElementById('live-score-display'),
+                nextBtn: document.getElementById('next-btn'),
+                restartBtn: document.getElementById('restart-btn'),
+                questionArea: document.getElementById('quiz-question-area'),
+                resultArea: document.getElementById('quiz-result-area'),
+                footerArea: document.getElementById('quiz-footer-area'),
+                resultCircle: document.getElementById('result-circle'),
+                resultPercentage: document.getElementById('result-percentage'),
+                resultDetails: document.getElementById('result-details-text'),
+                barGraphContainer: document.getElementById('bar-graph'),
+                barGraphFill: document.getElementById('bar-graph-fill'),
+                resultGifImage: document.getElementById('result-gif-image')
+            },
+
+            init() {
+                this.currentQuestionIndex = 0;
+                this.score = 0;
+                
+                this.elements.questionArea.style.display = 'flex';
+                this.elements.footerArea.style.display = 'flex';
+                this.elements.resultArea.style.display = 'none';
+                this.elements.nextBtn.style.display = 'block';
+                this.elements.restartBtn.style.display = 'none';
+                this.elements.barGraphContainer.style.display = 'none';
+                this.elements.resultGifImage.style.display = 'none';
+                
+                this.updateLiveScore();
+                this.loadQuestion();
+            },
+
+            loadQuestion() {
+                this.selectedOptionIndex = null;
+                this.elements.nextBtn.disabled = true; 
+
+                const progressPercentage = (this.currentQuestionIndex / this.questions.length) * 100;
+                this.elements.progressFill.style.width = `${progressPercentage}%`;
+
+                const q = this.questions[this.currentQuestionIndex];
+                this.elements.questionText.innerText = `${this.currentQuestionIndex + 1}. ${q.text}`;
+
+                this.elements.optionsArea.innerHTML = '';
+                q.options.forEach((optText, index) => {
+                    const label = document.createElement('label');
+                    label.className = 'quiz-option';
+                    
+                    const radio = document.createElement('input');
+                    radio.type = 'radio';
+                    radio.name = 'quiz-active-question';
+                    radio.value = index;
+                    radio.addEventListener('change', () => this.selectOption(index, label));
+
+                    const textSpan = document.createElement('span');
+                    textSpan.innerText = optText;
+
+                    label.appendChild(radio);
+                    label.appendChild(textSpan);
+                    this.elements.optionsArea.appendChild(label);
+                });
+
+                if (this.currentQuestionIndex === this.questions.length - 1) {
+                    this.elements.nextBtn.innerText = "Finish";
+                } else {
+                    this.elements.nextBtn.innerText = "Next";
+                }
+            },
+
+            selectOption(index, labelElement) {
+                this.selectedOptionIndex = index;
+                this.elements.nextBtn.disabled = false; 
+
+                const allLabels = this.elements.optionsArea.querySelectorAll('.quiz-option');
+                allLabels.forEach(lbl => lbl.classList.remove('selected'));
+                labelElement.classList.add('selected');
+            },
+
+            submitAnswer() {
+                if (this.selectedOptionIndex === null) return;
+
+                const q = this.questions[this.currentQuestionIndex];
+                if (this.selectedOptionIndex === q.correctIndex) {
+                    this.score += this.marksForCorrect;
+                } else {
+                    this.score += this.marksForIncorrect;
+                }
+
+                this.updateLiveScore();
+
+                this.currentQuestionIndex++;
+                
+                if (this.currentQuestionIndex < this.questions.length) {
+                    this.loadQuestion();
+                } else {
+                    this.showResults();
+                }
+            },
+
+            updateLiveScore() {
+                this.elements.liveScore.innerText = `Score: ${this.score}`;
+            },
+
+            showResults() {
+                this.elements.progressFill.style.width = '100%';
+
+                this.elements.questionArea.style.display = 'none';
+                this.elements.footerArea.style.display = 'none';
+                this.elements.resultArea.style.display = 'flex';
+                this.elements.restartBtn.style.display = 'block';
+
+                const maxPossibleScore = this.questions.length * this.marksForCorrect;
+                const displayScore = Math.max(0, this.score);
+                const rawPercentage = (displayScore / maxPossibleScore) * 100;
+                
+                this.elements.resultDetails.innerText = `You scored ${this.score} out of ${maxPossibleScore} points.`;
+                
+                this.animateCircularGraph(Math.round(rawPercentage));
+
+                this.elements.barGraphContainer.style.display = 'block';
+                setTimeout(() => {
+                    this.elements.barGraphFill.style.width = `${Math.round(rawPercentage)}%`;
+                }, 100);
+
+                this.elements.resultGifImage.style.display = 'block';
+                
+                if (rawPercentage >= 80) {
+                    this.elements.resultGifImage.src = "https://media.giphy.com/media/xT0xezQGU5xCDJuCPe/giphy.gif"; 
+                } else if (rawPercentage >= 50) {
+                    this.elements.resultGifImage.src = "https://media.giphy.com/media/3o7abKhOpu0NwenH3O/giphy.gif";
+                } else {
+                    this.elements.resultGifImage.src = "https://media.giphy.com/media/T1WqKkLY753dZghV8E/giphy.gif";
+                }
+            },
+
+            animateCircularGraph(targetPercentage) {
+                let current = 0;
+                let step = targetPercentage / 50; 
+                if (targetPercentage === 0) step = 1;
+
+                this.elements.resultPercentage.innerText = '0%';
+                this.elements.resultCircle.style.background = `conic-gradient(#333 0deg, #333 360deg)`; 
+
+                const interval = setInterval(() => {
+                    current += step;
+                    if (current >= targetPercentage) {
+                        current = targetPercentage;
+                        clearInterval(interval);
+                    }
+                    
+                    this.elements.resultPercentage.innerText = `${Math.round(current)}%`;
+                    
+                    const degrees = current * 3.6;
+                    this.elements.resultCircle.style.background = `conic-gradient(var(--quiz-accent) ${degrees}deg, #333 0deg)`;
+                    
+                }, 20); 
+            }
+        };
+
+        QUIZ.init();
+
+    </script>
+</body>
+
+</html>
